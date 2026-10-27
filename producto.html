@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle del Producto - Tienda de Plantas</title>
+    <!-- Tailwind CSS v4 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-amber-50 min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <div id="navbar"></div>
+    
+    <!-- Contenido Principal -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <!-- Botón volver -->
+        <div class="mb-6">
+            <a href="index.html" class="inline-flex items-center text-green-700 hover:text-green-800 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Volver al catálogo
+            </a>
+        </div>
+        
+        <!-- Detalle del producto -->
+        <div id="detalleProducto" class="bg-white rounded-lg shadow-lg overflow-hidden max-w-4xl mx-auto">
+            <!-- Se genera con JavaScript -->
+        </div>
+        
+        <!-- Mensaje de error si no se encuentra producto -->
+        <div id="productoNoEncontrado" class="hidden text-center py-12">
+            <div class="text-6xl mb-4">😕</div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Producto no encontrado</h2>
+            <p class="text-gray-600 mb-6">El producto que buscas no existe o fue eliminado.</p>
+            <a href="index.html" class="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
+                Volver al Catálogo
+            </a>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <div id="footer"></div>
+    
+    <!-- Scripts -->
+    <script src="js/productos.js"></script>
+    <script src="js/carrito.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/producto.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            generarNavbar();
+            generarFooter();
+            cargarDetalleProducto();
+        });
+    </script>
+</body>
+</html>
