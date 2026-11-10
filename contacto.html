@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <meta name="description" content="Escribe a Raíz & Hoja: asesoría para elegir plantas, dudas sobre pedidos, envíos y garantía. Formulario simulado.">
+  <meta name="theme-color" content="#fafaf9">
+  <title>Contacto · Raíz & Hoja</title>
+  <script>
+    // Aplica el tema guardado antes de pintar para evitar destellos.
+    (function () {
+      try {
+        var guardado = localStorage.getItem('tienda_tema');
+        var prefiereOscuro = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (guardado === 'oscuro' || (!guardado && prefiereOscuro)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (error) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @custom-variant dark (&:where(.dark, .dark *));
+    @theme {
+      --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+      --font-display: "Fraunces", ui-serif, Georgia, serif;
+    }
+  </style>
+  <style>
+    html { scroll-padding-top: 5.5rem; }
+    @keyframes aparecer { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animar-aparecer { animation: aparecer .45s cubic-bezier(.22,.61,.36,1) both; }
+    @media (prefers-reduced-motion: reduce) { .animar-aparecer { animation: none !important; } }
+    [hidden] { display: none !important; }
+    .campo-error { border-color: #e11d48 !important; }
+  </style>
+</head>
+<body class="flex min-h-screen flex-col bg-stone-50 font-sans text-stone-800 antialiased selection:bg-emerald-200 selection:text-emerald-950 dark:bg-stone-950 dark:text-stone-100">
+  <a href="#contenido" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-lg focus:bg-emerald-700 focus:px-4 focus:py-2 focus:text-white">Saltar al contenido</a>
+
+  <div id="navbar"></div>
+
+  <main id="contenido" class="flex-1">
+    <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+      <nav aria-label="Migas de pan" class="mb-4 flex items-center gap-2 text-sm text-stone-400 dark:text-stone-500">
+        <a href="index.html" class="transition hover:text-emerald-700 dark:hover:text-emerald-300">Catálogo</a>
+        <span aria-hidden="true">/</span>
+        <span class="text-stone-500 dark:text-stone-400">Contacto</span>
+      </nav>
+
+      <div class="max-w-2xl">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">Contacto</p>
+        <h1 class="mt-2 font-display text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl dark:text-stone-50">Cuéntanos qué necesitas</h1>
+        <p class="mt-3 text-sm leading-relaxed text-stone-500 sm:text-base dark:text-stone-400">
+          Resolvemos dudas sobre plantas, pedidos y envíos. Este formulario es simulado: no envía datos a ningún servidor.
+        </p>
+      </div>
+
+      <div class="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+        <!-- Formulario -->
+        <section class="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6 dark:border-stone-800 dark:bg-stone-900" aria-labelledby="tituloFormulario">
+          <h2 id="tituloFormulario" class="font-display text-lg font-semibold text-stone-900 dark:text-stone-50">Escríbenos</h2>
+
+          <div id="exitoContacto" class="mt-4 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300" role="status" aria-live="polite" tabindex="-1"></div>
+
+          <form id="formContacto" class="mt-4 space-y-4" novalidate>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label for="nombreContacto" class="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Nombre completo</label>
+                <input id="nombreContacto" name="nombre" type="text" autocomplete="name" required
+                       aria-describedby="errorNombreContacto"
+                       class="mt-1.5 w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                <p id="errorNombreContacto" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
+              <div>
+                <label for="correoContacto" class="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Correo electrónico</label>
+                <input id="correoContacto" name="correo" type="email" autocomplete="email" required
+                       aria-describedby="errorCorreoContacto"
+                       class="mt-1.5 w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                <p id="errorCorreoContacto" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label for="telefonoContacto" class="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Teléfono (opcional)</label>
+                <input id="telefonoContacto" name="telefono" type="tel" autocomplete="tel"
+                       aria-describedby="errorTelefonoContacto"
+                       class="mt-1.5 w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                <p id="errorTelefonoContacto" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
+              <div>
+                <label for="asuntoContacto" class="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Asunto</label>
+                <select id="asuntoContacto" name="asunto" required aria-describedby="errorAsuntoContacto"
+                        class="mt-1.5 w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                  <option value="">Selecciona una opción</option>
+                  <option value="asesoria">Asesoría para elegir una planta</option>
+                  <option value="pedido">Estado de mi pedido</option>
+                  <option value="envio">Envíos y entregas</option>
+                  <option value="garantia">Garantía verde</option>
+                  <option value="otro">Otro tema</option>
+                </select>
+                <p id="errorAsuntoContacto" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between">
+                <label for="mensajeContacto" class="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Mensaje</label>
+                <span id="contadorMensaje" class="text-xs text-stone-400 dark:text-stone-500">0 / 600</span>
+              </div>
+              <textarea id="mensajeContacto" name="mensaje" rows="6" required maxlength="600"
+                        aria-describedby="errorMensajeContacto contadorMensaje"
+                        placeholder="Cuéntanos cuánta luz recibe tu espacio, qué planta te interesa o el número de tu pedido."
+                        class="mt-1.5 w-full resize-y rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"></textarea>
+              <p id="errorMensajeContacto" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+            </div>
+
+            <div class="flex flex-col gap-3 border-t border-stone-200 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-stone-800">
+              <p class="text-xs leading-relaxed text-stone-400 dark:text-stone-500">
+                Al enviar aceptas que revisemos tu mensaje solo para responderte.
+              </p>
+              <button type="submit" id="btnEnviarContacto"
+                      class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:focus-visible:ring-offset-stone-900">
+                Enviar mensaje
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Datos de contacto -->
+        <aside class="space-y-4">
+          <section class="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900" aria-labelledby="tituloDatosContacto">
+            <h2 id="tituloDatosContacto" class="font-display text-lg font-semibold text-stone-900 dark:text-stone-50">Datos del vivero</h2>
+            <ul class="mt-4 space-y-3 text-sm text-stone-600 dark:text-stone-300">
+              <li class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-emerald-700 dark:text-emerald-400" aria-hidden="true">✉️</span>
+                <span><a href="mailto:hola@raizyhoja.co" class="underline-offset-4 hover:text-emerald-700 hover:underline dark:hover:text-emerald-300">hola@raizyhoja.co</a><br><span class="text-xs text-stone-400 dark:text-stone-500">Respondemos en 1 día hábil.</span></span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-emerald-700 dark:text-emerald-400" aria-hidden="true">📞</span>
+                <span>+57 300 123 4567<br><span class="text-xs text-stone-400 dark:text-stone-500">Lun a sáb, 9:00 a 18:00.</span></span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-emerald-700 dark:text-emerald-400" aria-hidden="true">📍</span>
+                <span>Bogotá, Colombia<br><span class="text-xs text-stone-400 dark:text-stone-500">Entregas en 2 a 3 días hábiles.</span></span>
+              </li>
+            </ul>
+          </section>
+
+          <section class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 dark:border-emerald-900/60 dark:bg-emerald-950/30" aria-labelledby="tituloAyudaContacto">
+            <h2 id="tituloAyudaContacto" class="font-display text-lg font-semibold text-emerald-900 dark:text-emerald-200">¿Ya hiciste un pedido?</h2>
+            <p class="mt-2 text-sm leading-relaxed text-emerald-800/90 dark:text-emerald-300/90">
+              Consulta su estado con tu número de pedido y el correo de la compra.
+            </p>
+            <a href="seguimiento.html" class="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:focus-visible:ring-offset-stone-950">
+              Rastrear mi pedido
+            </a>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+  <div id="toasts" class="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2" role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+
+  <script src="js/config.js"></script>
+  <script src="js/productos.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/favoritos.js"></script>
+  <script src="js/carrito.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/contacto.js"></script>
+</body>
+</html>

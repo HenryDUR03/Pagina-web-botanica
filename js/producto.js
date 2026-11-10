@@ -30,6 +30,12 @@ async function cargarProducto(id) {
     const { producto } = await TiendaAPI.obtenerProducto(id);
     productoActual = producto;
     document.title = `${producto.nombre} · Raíz & Hoja`;
+
+    const metaDescripcion = document.querySelector('meta[name="description"]');
+    if (metaDescripcion) {
+      metaDescripcion.content = `${producto.nombre}: ${producto.descripcion}`.slice(0, 160);
+    }
+
     renderizarDetalle(producto);
     cargarRelacionados(producto);
   } catch (error) {
@@ -55,6 +61,38 @@ function esqueletoDetalle() {
         <div class="h-11 w-full rounded-xl bg-stone-200 dark:bg-stone-800"></div>
       </div>
     </div>`;
+}
+
+// Ficha de cuidados para plantas: luz, riego y tamaño.
+function htmlFichaCuidados(cuidados) {
+  if (!cuidados || typeof cuidados !== 'object') return '';
+
+  const filas = [
+    { icono: ICONOS.sol, etiqueta: 'Luz', valor: cuidados.luz },
+    { icono: ICONOS.gota, etiqueta: 'Riego', valor: cuidados.riego },
+    { icono: ICONOS.regla, etiqueta: 'Tamaño', valor: cuidados.tamano ?? cuidados.tamaño }
+  ].filter((fila) => typeof fila.valor === 'string' && fila.valor.trim() !== '');
+
+  if (filas.length === 0) return '';
+
+  return `
+    <section class="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 dark:border-emerald-900/60 dark:bg-emerald-950/30" aria-labelledby="tituloCuidados">
+      <h2 id="tituloCuidados" class="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800 dark:text-emerald-300">Ficha de cuidados</h2>
+      <dl class="mt-3 grid gap-3 sm:grid-cols-3">
+        ${filas
+          .map(
+            (fila) => `
+              <div class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-emerald-700 dark:text-emerald-400" aria-hidden="true">${fila.icono}</span>
+                <div>
+                  <dt class="text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-400">${escaparHtml(fila.etiqueta)}</dt>
+                  <dd class="mt-0.5 text-sm leading-snug text-stone-700 dark:text-stone-300">${escaparHtml(fila.valor)}</dd>
+                </div>
+              </div>`
+          )
+          .join('')}
+      </dl>
+    </section>`;
 }
 
 function renderizarDetalle(producto) {
@@ -108,6 +146,8 @@ function renderizarDetalle(producto) {
         <p class="mt-3 font-display text-2xl font-semibold text-emerald-700 dark:text-emerald-400">${formatearCOP(producto.precio)}</p>
 
         <p class="mt-4 text-sm leading-relaxed text-stone-600 sm:text-base dark:text-stone-300">${escaparHtml(producto.descripcion)}</p>
+
+        ${htmlFichaCuidados(producto.cuidados)}
 
         <div class="mt-6 rounded-2xl border border-stone-200/80 bg-stone-50/70 p-4 dark:border-stone-800 dark:bg-stone-950/40">
           <div class="flex items-center justify-between gap-3">

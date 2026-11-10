@@ -1,15 +1,17 @@
 // Navbar, footer y tema compartidos por todas las páginas.
 
 const ENLACES_NAV = [
-  { href: '/index.html', texto: 'Catálogo', pagina: 'inicio' },
-  { href: '/favoritos.html', texto: 'Favoritos', pagina: 'favoritos' },
-  { href: '/seguimiento.html', texto: 'Mi pedido', pagina: 'seguimiento' }
+  { href: 'index.html', texto: 'Catálogo', pagina: 'inicio' },
+  { href: 'sobre-nosotros.html', texto: 'Nosotros', pagina: 'nosotros' },
+  { href: 'favoritos.html', texto: 'Favoritos', pagina: 'favoritos' },
+  { href: 'seguimiento.html', texto: 'Mi pedido', pagina: 'seguimiento' }
 ];
 
 function paginaActual() {
   const archivo = window.location.pathname.split('/').pop() || 'index.html';
   if (archivo === 'favoritos.html') return 'favoritos';
   if (archivo === 'seguimiento.html' || archivo === 'confirmacion.html') return 'seguimiento';
+  if (archivo === 'sobre-nosotros.html' || archivo === 'contacto.html') return 'nosotros';
   if (archivo === 'carrito.html' || archivo === 'checkout.html') return 'carrito';
   if (archivo === 'producto.html') return 'inicio';
   return 'inicio';
@@ -130,6 +132,7 @@ function generarFooter() {
               <li><a href="index.html#catalogo" class="text-stone-500 transition hover:text-emerald-700 dark:text-stone-400 dark:hover:text-emerald-300">Semillas y plantas</a></li>
               <li><a href="favoritos.html" class="text-stone-500 transition hover:text-emerald-700 dark:text-stone-400 dark:hover:text-emerald-300">Favoritos</a></li>
               <li><a href="carrito.html" class="text-stone-500 transition hover:text-emerald-700 dark:text-stone-400 dark:hover:text-emerald-300">Carrito</a></li>
+              <li><a href="sobre-nosotros.html" class="text-stone-500 transition hover:text-emerald-700 dark:text-stone-400 dark:hover:text-emerald-300">Sobre nosotros</a></li>
             </ul>
           </div>
 
@@ -139,6 +142,7 @@ function generarFooter() {
               <li><a href="seguimiento.html" class="text-stone-500 transition hover:text-emerald-700 dark:text-stone-400 dark:hover:text-emerald-300">Seguimiento de pedido</a></li>
               <li><a href="index.html#beneficios" class="text-stone-500 transition hover:text-emerald-700 dark:text-stone-400 dark:hover:text-emerald-300">Envíos y garantía</a></li>
               <li><a href="index.html#catalogo" class="text-stone-500 transition hover:text-emerald-700 dark:text-stone-400 dark:hover:text-emerald-300">Asesoría de cuidado</a></li>
+              <li><a href="contacto.html" class="text-stone-500 transition hover:text-emerald-700 dark:text-stone-400 dark:hover:text-emerald-300">Contacto</a></li>
             </ul>
           </div>
 
@@ -215,11 +219,34 @@ function configurarTema() {
   });
 }
 
+// Botón flotante de WhatsApp. El número se cambia solo en js/config.js
+// (TIENDA_CONFIG.WHATSAPP), sin espacios ni signos.
+function generarBotonWhatsApp() {
+  const numero = String(window.TIENDA_CONFIG?.WHATSAPP ?? '').replace(/\D/g, '');
+  if (numero.length < 7 || document.getElementById('botonWhatsApp')) return;
+
+  const mensaje = encodeURIComponent('Hola, quiero asesoría para elegir una planta.');
+  const enlace = document.createElement('a');
+
+  enlace.id = 'botonWhatsApp';
+  enlace.href = `https://wa.me/${numero}?text=${mensaje}`;
+  enlace.target = '_blank';
+  enlace.rel = 'noopener noreferrer';
+  enlace.setAttribute('aria-label', 'Escribir al vivero por WhatsApp');
+  enlace.title = 'Escríbenos por WhatsApp';
+  enlace.className =
+    'fixed bottom-4 left-4 z-[60] inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-950/20 transition hover:-translate-y-0.5 hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 sm:bottom-6 sm:left-6 dark:focus-visible:ring-offset-stone-950';
+  enlace.innerHTML = `${ICONOS.whatsapp}<span class="hidden sm:inline">WhatsApp</span>`;
+
+  document.body.appendChild(enlace);
+}
+
 function inicializarComun() {
   generarNavbar();
   generarFooter();
   configurarMenuMovil();
   configurarTema();
+  generarBotonWhatsApp();
   actualizarContadorCarrito();
   actualizarContadorFavoritos();
 
