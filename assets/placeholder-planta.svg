@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Ilustración de una planta">
+  <rect width="800" height="600" fill="#f5f0e6"/>
+  <circle cx="400" cy="300" r="190" fill="#e3ecdd"/>
+  <path d="M400 430V250" stroke="#5d7c56" stroke-width="14" stroke-linecap="round"/>
+  <path d="M400 330c-90-15-140-70-150-150 85 10 140 60 150 150z" fill="#6f8f6a"/>
+  <path d="M400 285c85-15 130-65 140-140-80 10-130 55-140 140z" fill="#82a67c"/>
+  <path d="M400 390c-70-10-110-50-120-115 65 8 110 45 120 115z" fill="#82a67c"/>
+  <path d="M320 445h160c22 0 40 18 40 40H280c0-22 18-40 40-40z" fill="#c2a17a"/>
+  <path d="M300 485h200v55c0 22-18 40-40 40H340c-22 0-40-18-40-40v-55z" fill="#a9835c"/>
+</svg>

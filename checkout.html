@@ -1,217 +1,276 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="scroll-smooth">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checkout - Tienda de Plantas</title>
-    <!-- Tailwind CSS v4 CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Checkout simulado de Raíz & Hoja: datos de envío, pago de prueba y resumen del pedido.">
+  <meta name="theme-color" content="#fafaf9">
+  <title>Checkout · Raíz & Hoja</title>
+  <script>
+    (function () {
+      try {
+        var guardado = localStorage.getItem('tienda_tema');
+        var prefiereOscuro = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (guardado === 'oscuro' || (!guardado && prefiereOscuro)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (error) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @custom-variant dark (&:where(.dark, .dark *));
+    @theme {
+      --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+      --font-display: "Fraunces", ui-serif, Georgia, serif;
+    }
+  </style>
+  <style>
+    html { scroll-padding-top: 5.5rem; }
+    @keyframes aparecer { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animar-aparecer { animation: aparecer .45s cubic-bezier(.22,.61,.36,1) both; }
+    @keyframes latido { 0%,100% { transform: scale(1); } 40% { transform: scale(1.18); } }
+    .animar-latido { animation: latido .5s ease-in-out; }
+    @keyframes entrar-toast { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+    .animar-toast { animation: entrar-toast .3s ease-out both; }
+    @media (prefers-reduced-motion: reduce) { .animar-aparecer, .animar-latido, .animar-toast { animation: none !important; } }
+    input[aria-invalid="true"] { border-color: #f43f5e; }
+    input[aria-invalid="true"]:focus { border-color: #f43f5e; --tw-ring-color: rgb(244 63 94 / 0.25); }
+    [hidden] { display: none !important; }
+  </style>
 </head>
-<body class="bg-amber-50 min-h-screen flex flex-col">
-    <!-- Navbar -->
-    <div id="navbar"></div>
-    
-    <!-- Contenido Principal -->
-    <main class="flex-grow container mx-auto px-4 py-8">
-        <h1 class="text-2xl md:text-3xl font-bold text-green-800 mb-6">Finalizar Compra</h1>
-        
-        <!-- Aviso de simulación -->
-        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                    </svg>
-                </div>
-                <div class="ml-3">
-                    <p class="text-sm text-yellow-700">
-                        <strong>Simulación de pago:</strong> Este es un checkout de prueba. No se procesa ningún pago real y <strong>NO</strong> se deben ingresar datos reales de tarjeta.
-                    </p>
-                </div>
+<body class="flex min-h-screen flex-col bg-stone-50 font-sans text-stone-800 antialiased selection:bg-emerald-200 selection:text-emerald-950 dark:bg-stone-950 dark:text-stone-100">
+  <a href="#contenido" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-lg focus:bg-emerald-700 focus:px-4 focus:py-2 focus:text-white">Saltar al contenido</a>
+
+  <div id="navbar"></div>
+
+  <main id="contenido" class="flex-1">
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+      <nav aria-label="Migas de pan" class="mb-4 flex items-center gap-2 text-sm text-stone-400 dark:text-stone-500">
+        <a href="carrito.html" class="transition hover:text-emerald-700 dark:hover:text-emerald-300">Carrito</a>
+        <span aria-hidden="true">/</span>
+        <span class="text-stone-500 dark:text-stone-400">Checkout</span>
+      </nav>
+
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">Paso final</p>
+          <h1 class="mt-2 font-display text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl dark:text-stone-50">Finalizar compra</h1>
+        </div>
+        <a href="carrito.html" class="text-sm font-semibold text-emerald-700 transition hover:text-emerald-800 dark:text-emerald-400">Editar carrito</a>
+      </div>
+
+      <!-- Aviso de simulación -->
+      <div class="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200" role="note">
+        <span class="mt-0.5 shrink-0" aria-hidden="true">⚠️</span>
+        <p><strong>Pago simulado.</strong> No se procesa ningún cobro real y <strong>no debes ingresar datos reales de tarjeta</strong>. Los datos de pago solo se validan en tu navegador y nunca se envían al servidor.</p>
+      </div>
+
+      <div id="avisosCheckout" class="mt-4 space-y-2" aria-live="polite"></div>
+
+      <!-- Cargando -->
+      <div id="cargandoCheckout" class="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+        <div class="animate-pulse space-y-6">
+          <div class="space-y-4 rounded-2xl border border-stone-200/80 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+            <div class="h-5 w-1/3 rounded-full bg-stone-200 dark:bg-stone-800"></div>
+            <div class="h-10 w-full rounded-xl bg-stone-200/80 dark:bg-stone-800"></div>
+            <div class="h-10 w-full rounded-xl bg-stone-200/80 dark:bg-stone-800"></div>
+            <div class="h-10 w-full rounded-xl bg-stone-200/80 dark:bg-stone-800"></div>
+          </div>
+          <div class="space-y-4 rounded-2xl border border-stone-200/80 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+            <div class="h-5 w-1/3 rounded-full bg-stone-200 dark:bg-stone-800"></div>
+            <div class="h-10 w-full rounded-xl bg-stone-200/80 dark:bg-stone-800"></div>
+            <div class="h-10 w-full rounded-xl bg-stone-200/80 dark:bg-stone-800"></div>
+          </div>
+        </div>
+        <div class="animate-pulse space-y-4 rounded-2xl border border-stone-200/80 bg-white p-6 dark:border-stone-800 dark:bg-stone-900">
+          <div class="h-5 w-1/2 rounded-full bg-stone-200 dark:bg-stone-800"></div>
+          <div class="h-16 w-full rounded-xl bg-stone-200/70 dark:bg-stone-800"></div>
+          <div class="h-3 w-full rounded-full bg-stone-200/80 dark:bg-stone-800"></div>
+          <div class="h-3 w-2/3 rounded-full bg-stone-200/80 dark:bg-stone-800"></div>
+          <div class="h-11 w-full rounded-xl bg-stone-200 dark:bg-stone-800"></div>
+        </div>
+      </div>
+
+      <!-- Error de carga -->
+      <div id="errorCheckout" class="mt-8 hidden"></div>
+
+      <!-- Carrito vacío -->
+      <div id="checkoutVacio" class="mt-8 hidden rounded-3xl border border-dashed border-stone-300 bg-white/70 px-6 py-16 text-center dark:border-stone-700 dark:bg-stone-900/60">
+        <span class="text-5xl" aria-hidden="true">🛒</span>
+        <h2 class="mt-4 font-display text-2xl font-semibold text-stone-900 dark:text-stone-50">No hay nada para pagar</h2>
+        <p class="mx-auto mt-2 max-w-md text-sm text-stone-500 dark:text-stone-400">Tu carrito está vacío. Agrega productos y vuelve para completar la compra simulada.</p>
+        <a href="index.html#catalogo" class="mt-6 inline-block rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">Ir al catálogo</a>
+      </div>
+
+      <!-- Checkout -->
+      <div id="checkoutContenido" class="mt-8 hidden grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+        <form id="formCheckout" novalidate class="space-y-6">
+          <!-- Envío -->
+          <section class="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6 dark:border-stone-800 dark:bg-stone-900" aria-labelledby="tituloEnvio">
+            <div class="flex items-center gap-2.5">
+              <span class="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100 text-sm font-bold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">1</span>
+              <div>
+                <h2 id="tituloEnvio" class="font-display text-lg font-semibold text-stone-900 dark:text-stone-50">Datos de envío</h2>
+                <p class="text-xs text-stone-400 dark:text-stone-500">¿Dónde llevamos tus plantas?</p>
+              </div>
             </div>
-        </div>
-        
-        <!-- Checkout con productos -->
-        <div id="checkoutConProductos">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Formulario -->
-                <div class="space-y-6">
-                    <!-- Datos de Envío -->
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h2 class="text-lg font-semibold text-green-800 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            </svg>
-                            Datos de Envío
-                        </h2>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre completo *</label>
-                                <input 
-                                    type="text" 
-                                    id="nombreEnvio" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                >
-                                <p class="text-red-600 text-xs mt-1" id="errorNombreEnvio"></p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico *</label>
-                                <input 
-                                    type="email" 
-                                    id="correoEnvio" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                >
-                                <p class="text-red-600 text-xs mt-1" id="errorCorreoEnvio"></p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label>
-                                <input 
-                                    type="tel" 
-                                    id="telefonoEnvio" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    placeholder="Ej: 3001234567"
-                                >
-                                <p class="text-red-600 text-xs mt-1" id="errorTelefonoEnvio"></p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Dirección *</label>
-                                <input 
-                                    type="text" 
-                                    id="direccionEnvio" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                >
-                                <p class="text-red-600 text-xs mt-1" id="errorDireccionEnvio"></p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Ciudad *</label>
-                                <input 
-                                    type="text" 
-                                    id="ciudadEnvio" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                >
-                                <p class="text-red-600 text-xs mt-1" id="errorCiudadEnvio"></p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Datos de Pago -->
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h2 class="text-lg font-semibold text-green-800 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3  3 0 003 3z"></path>
-                            </svg>
-                            Datos de Pago (Simulado)
-                        </h2>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre en la tarjeta *</label>
-                                <input 
-                                    type="text" 
-                                    id="nombreTarjeta" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    placeholder="Como aparece en la tarjeta"
-                                >
-                                <p class="text-red-600 text-xs mt-1" id="errorNombreTarjeta"></p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Número de tarjeta *</label>
-                                <input 
-                                    type="text" 
-                                    id="numeroTarjeta" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    placeholder="1234567812345678"
-                                    maxlength="16"
-                                >
-                                <p class="text-red-600 text-xs mt-1" id="errorNumeroTarjeta"></p>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Vencimiento (MM/AA) *</label>
-                                    <input 
-                                        type="text" 
-                                        id="vencimientoTarjeta" 
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        placeholder="MM/AA"
-                                        maxlength="5"
-                                    >
-                                    <p class="text-red-600 text-xs mt-1" id="errorVencimientoTarjeta"></p>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">CVV *</label>
-                                    <input 
-                                        type="text" 
-                                        id="cvvTarjeta" 
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        placeholder="123"
-                                        maxlength="3"
-                                    >
-                                    <p class="text-red-600 text-xs mt-1" id="errorCvvTarjeta"></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Resumen del pedido -->
-                <div class="lg:col-span-1">
-                    <div class="bg-white rounded-lg shadow-md p-6 sticky top-24">
-                        <h2 class="text-lg font-semibold text-green-800 mb-4">Resumen del Pedido</h2>
-                        <div id="resumenProductos" class="space-y-3 mb-4 max-h-64 overflow-y-auto">
-                            <!-- Se genera con JavaScript -->
-                        </div>
-                        <div class="border-t border-gray-200 pt-4 space-y-2">
-                            <div class="flex justify-between text-gray-600">
-                                <span>Subtotal</span>
-                                <span id="subtotalCheckout">0</span>
-                            </div>
-                            <div class="flex justify-between text-lg font-bold text-green-800">
-                                <span>Total</span>
-                                <span id="totalCheckout">0</span>
-                            </div>
-                        </div>
-                        <button 
-                            onclick="procesarCompra()" 
-                            class="w-full mt-6 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
-                        >
-                            Confirmar Compra
-                        </button>
-                        <a 
-                            href="carrito.html" 
-                            class="block w-full text-center mt-3 bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
-                        >
-                            Volver al Carrito
-                        </a>
-                    </div>
-                </div>
+
+            <div class="mt-5 grid gap-4 sm:grid-cols-2">
+              <div class="sm:col-span-2">
+                <label for="nombreEnvio" class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Nombre completo *</label>
+                <input id="nombreEnvio" name="nombre" type="text" autocomplete="name" required aria-describedby="errorNombreEnvio"
+                       class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                <p id="errorNombreEnvio" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
+
+              <div>
+                <label for="correoEnvio" class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Correo electrónico *</label>
+                <input id="correoEnvio" name="correo" type="email" autocomplete="email" required aria-describedby="errorCorreoEnvio" placeholder="tucorreo@ejemplo.com"
+                       class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                <p id="errorCorreoEnvio" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
+
+              <div>
+                <label for="telefonoEnvio" class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Teléfono *</label>
+                <input id="telefonoEnvio" name="telefono" type="tel" inputmode="tel" autocomplete="tel" required aria-describedby="errorTelefonoEnvio" placeholder="300 123 4567"
+                       class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                <p id="errorTelefonoEnvio" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
+
+              <div class="sm:col-span-2">
+                <label for="direccionEnvio" class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Dirección *</label>
+                <input id="direccionEnvio" name="direccion" type="text" autocomplete="street-address" required aria-describedby="errorDireccionEnvio" placeholder="Calle 10 # 20-30, apto 201"
+                       class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                <p id="errorDireccionEnvio" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
+
+              <div>
+                <label for="ciudadEnvio" class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Ciudad *</label>
+                <input id="ciudadEnvio" name="ciudad" type="text" autocomplete="address-level2" required aria-describedby="errorCiudadEnvio" placeholder="Bogotá"
+                       class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                <p id="errorCiudadEnvio" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
             </div>
-        </div>
-        
-        <!-- Checkout vacío -->
-        <div id="checkoutVacio" class="hidden text-center py-12">
-            <div class="text-6xl mb-4">🛒</div>
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Tu carrito está vacío</h2>
-            <p class="text-gray-600 mb-6">Agrega productos para poder realizar la compra</p>
-            <a href="index.html" class="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
-                Ir al Catálogo
-            </a>
-        </div>
-    </main>
-    
-    <!-- Footer -->
-    <div id="footer"></div>
-    
-    <!-- Scripts -->
-    <script src="js/productos.js"></script>
-    <script src="js/carrito.js"></script>
-    <script src="js/common.js"></script>
-    <script src="js/checkout.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            generarNavbar();
-            generarFooter();
-            cargarCheckout();
-        });
-    </script>
+          </section>
+
+          <!-- Pago simulado -->
+          <section class="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6 dark:border-stone-800 dark:bg-stone-900" aria-labelledby="tituloPago">
+            <div class="flex items-center gap-2.5">
+              <span class="grid h-8 w-8 place-items-center rounded-lg bg-amber-100 text-sm font-bold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">2</span>
+              <div>
+                <h2 id="tituloPago" class="font-display text-lg font-semibold text-stone-900 dark:text-stone-50">Datos de pago</h2>
+                <p class="text-xs text-stone-400 dark:text-stone-500">Solo para simular la experiencia</p>
+              </div>
+            </div>
+
+            <div class="mt-4 rounded-xl bg-stone-50 px-3.5 py-3 text-xs text-stone-500 dark:bg-stone-950/50 dark:text-stone-400">
+              Usa datos inventados. Al confirmar, la tarjeta <strong class="text-stone-700 dark:text-stone-200">no se envía ni se guarda</strong> en ningún lado.
+            </div>
+
+            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+              <div class="sm:col-span-2">
+                <label for="nombreTarjeta" class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Nombre en la tarjeta *</label>
+                <input id="nombreTarjeta" name="nombre_tarjeta" type="text" autocomplete="off" required aria-describedby="errorNombreTarjeta" placeholder="Como aparece en la tarjeta"
+                       class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                <p id="errorNombreTarjeta" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
+
+              <div class="sm:col-span-2">
+                <label for="numeroTarjeta" class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Número de tarjeta *</label>
+                <input id="numeroTarjeta" name="numero_tarjeta" type="text" inputmode="numeric" autocomplete="off" required maxlength="19" aria-describedby="errorNumeroTarjeta" placeholder="1234 5678 9012 3456"
+                       class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm tracking-[0.08em] text-stone-900 placeholder:tracking-normal placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                <p id="errorNumeroTarjeta" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
+
+              <div>
+                <label for="vencimientoTarjeta" class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">Vencimiento *</label>
+                <input id="vencimientoTarjeta" name="vencimiento" type="text" inputmode="numeric" autocomplete="off" required maxlength="5" aria-describedby="errorVencimientoTarjeta" placeholder="MM/AA"
+                       class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                <p id="errorVencimientoTarjeta" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
+
+              <div>
+                <label for="cvvTarjeta" class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">CVV *</label>
+                <input id="cvvTarjeta" name="cvv" type="text" inputmode="numeric" autocomplete="off" required maxlength="3" aria-describedby="errorCvvTarjeta" placeholder="123"
+                       class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100">
+                <p id="errorCvvTarjeta" class="mt-1 text-xs text-rose-600 dark:text-rose-400" aria-live="polite"></p>
+              </div>
+            </div>
+          </section>
+
+          <a href="carrito.html" class="inline-flex items-center gap-2 text-sm font-medium text-stone-500 transition hover:text-emerald-700 dark:text-stone-400 dark:hover:text-emerald-300">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+            Volver al carrito
+          </a>
+        </form>
+
+        <!-- Resumen -->
+        <aside class="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6 lg:sticky lg:top-24 dark:border-stone-800 dark:bg-stone-900" aria-label="Resumen del pedido">
+          <div class="flex items-center justify-between">
+            <h2 class="font-display text-lg font-semibold text-stone-900 dark:text-stone-50">Tu pedido</h2>
+            <span id="cantidadResumenCheckout" class="text-xs text-stone-400 dark:text-stone-500"></span>
+          </div>
+
+          <div id="resumenProductos" class="mt-4 max-h-64 space-y-3 overflow-y-auto pr-1"></div>
+
+          <div class="mt-4 border-t border-stone-200 pt-4 dark:border-stone-800">
+            <div class="flex items-center justify-between text-xs">
+              <span id="cuponCheckout" class="text-stone-400 dark:text-stone-500">Sin cupón aplicado</span>
+              <a href="carrito.html" class="font-semibold text-emerald-700 transition hover:text-emerald-800 dark:text-emerald-400">Cambiar</a>
+            </div>
+
+            <dl class="mt-3 space-y-2.5 text-sm">
+              <div class="flex justify-between text-stone-500 dark:text-stone-400">
+                <dt>Subtotal</dt>
+                <dd id="subtotalCheckout" class="font-medium text-stone-800 dark:text-stone-200">$0</dd>
+              </div>
+              <div id="filaDescuentoCheckout" class="flex justify-between text-emerald-700 dark:text-emerald-400">
+                <dt>Descuento</dt>
+                <dd id="descuentoCheckout" class="font-medium">-$0</dd>
+              </div>
+              <div class="flex justify-between text-stone-500 dark:text-stone-400">
+                <dt>Envío</dt>
+                <dd id="envioCheckout" class="font-medium text-stone-800 dark:text-stone-200">$0</dd>
+              </div>
+              <div class="flex justify-between border-t border-stone-200 pt-3 text-base font-semibold text-stone-900 dark:border-stone-800 dark:text-stone-50">
+                <dt>Total</dt>
+                <dd id="totalCheckout" class="font-display text-xl text-emerald-700 dark:text-emerald-400">$0</dd>
+              </div>
+            </dl>
+
+            <p id="mensajeEnvioCheckout" class="mt-3 text-[11px] text-stone-400 dark:text-stone-500"></p>
+          </div>
+
+          <div id="alertaCheckout" class="mt-4 hidden" aria-live="polite"></div>
+
+          <button type="submit" form="formCheckout" id="btnConfirmarCompra"
+                  class="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70 dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:focus-visible:ring-offset-stone-900">
+            Confirmar compra
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+
+          <p class="mt-3 text-center text-[11px] leading-relaxed text-stone-400 dark:text-stone-500">
+            Al confirmar aceptas que este es un pedido de prueba. No se realizará ningún cobro.
+          </p>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+  <div id="toasts" class="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2" role="status" aria-live="polite"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/productos.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/favoritos.js"></script>
+  <script src="js/carrito.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/checkout.js"></script>
 </body>
 </html>

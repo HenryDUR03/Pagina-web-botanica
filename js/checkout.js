@@ -1,251 +1,454 @@
-// Lógica de checkout (checkout.html)
+// Checkout: revalida el carrito, valida el formulario en el navegador y crea
+// el pedido en la API. Los datos de tarjeta nunca salen del navegador.
 
-// Cargar checkout
-function cargarCheckout() {
-  const carritoCompleto = obtenerCarritoCompleto();
-  const checkoutConProductos = document.getElementById('checkoutConProductos');
-  const checkoutVacio = document.getElementById('checkoutVacio');
-  const resumenProductos = document.getElementById('resumenProductos');
-  const subtotalEl = document.getElementById('subtotalCheckout');
-  const totalEl = document.getElementById('totalCheckout');
-  
-  if (carritoCompleto.length === 0) {
-    if (checkoutConProductos) checkoutConProductos.classList.add('hidden');
-    if (checkoutVacio) checkoutVacio.classList.remove('hidden');
+let itemsCheckout = [];
+let checkoutListo = false;
+let intentoEnvio = false;
+let enviando = false;
+
+const REGLAS_CHECKOUT = [
+  {
+    id: 'nombreEnvio',
+    errorId: 'errorNombreEnvio',
+    mensaje: 'Ingresa tu nombre completo (mínimo 3 caracteres).',
+    validar: (valor) => valor.length >= 3
+  },
+  {
+    id: 'correoEnvio',
+    errorId: 'errorCorreoEnvio',
+    mensaje: 'Ingresa un correo electrónico válido.',
+    validar: (valor) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(valor)
+  },
+  {
+    id: 'telefonoEnvio',
+    errorId: 'errorTelefonoEnvio',
+    mensaje: 'El teléfono debe tener entre 7 y 15 dígitos.',
+    validar: (valor) => {
+      const digitos = valor.replace(/\D/g, '');
+      return digitos.length >= 7 && digitos.length <= 15;
+    }
+  },
+  {
+    id: 'direccionEnvio',
+    errorId: 'errorDireccionEnvio',
+    mensaje: 'La dirección debe tener al menos 5 caracteres.',
+    validar: (valor) => valor.length >= 5
+  },
+  {
+    id: 'ciudadEnvio',
+    errorId: 'errorCiudadEnvio',
+    mensaje: 'Ingresa tu ciudad.',
+    validar: (valor) => valor.length >= 2
+  },
+  {
+    id: 'nombreTarjeta',
+    errorId: 'errorNombreTarjeta',
+    mensaje: 'Escribe el nombre como aparece en la tarjeta.',
+    validar: (valor) => valor.length >= 3
+  },
+  {
+    id: 'numeroTarjeta',
+    errorId: 'errorNumeroTarjeta',
+    mensaje: 'El número de tarjeta debe tener 16 dígitos.',
+    validar: (valor) => valor.replace(/\D/g, '').length === 16
+  },
+  {
+    id: 'vencimientoTarjeta',
+    errorId: 'errorVencimientoTarjeta',
+    mensaje: 'Usa el formato MM/AA con una fecha vigente.',
+    validar: validarVencimientoTarjeta
+  },
+  {
+    id: 'cvvTarjeta',
+    errorId: 'errorCvvTarjeta',
+    mensaje: 'El CVV debe tener 3 dígitos.',
+    validar: (valor) => /^\d{3}$/.test(valor)
+  }
+];
+
+const CAMPOS_SERVIDOR = {
+  'cliente.nombre': 'nombreEnvio',
+  'cliente.correo': 'correoEnvio',
+  'cliente.telefono': 'telefonoEnvio',
+  'cliente.direccion': 'direccionEnvio',
+  'cliente.ciudad': 'ciudadEnvio'
+};
+
+function iniciarCheckout() {
+  conectarFormularioCheckout();
+  cargarDatosCheckout();
+}
+
+function conectarFormularioCheckout() {
+  const formulario = document.getElementById('formCheckout');
+  if (!formulario || formulario.dataset.conectado === 'true') return;
+  formulario.dataset.conectado = 'true';
+
+  REGLAS_CHECKOUT.forEach((regla) => {
+    const input = document.getElementById(regla.id);
+    if (!input) return;
+
+    input.addEventListener('input', () => {
+      formatearCampoCheckout(input);
+      if (input.getAttribute('aria-invalid') === 'true') validarReglaCheckout(regla);
+    });
+
+    input.addEventListener('blur', () => {
+      if (intentoEnvio || input.value.trim() !== '') validarReglaCheckout(regla);
+    });
+  });
+
+  formulario.addEventListener('submit', enviarPedido);
+}
+
+async function cargarDatosCheckout() {
+  const guardados = obtenerCarrito();
+  checkoutListo = false;
+
+  if (guardados.length === 0) {
+    mostrarPantallaCheckout('checkoutVacio');
+    actualizarContadorCarrito();
     return;
   }
-  
-  if (checkoutConProductos) checkoutConProductos.classList.remove('hidden');
-  if (checkoutVacio) checkoutVacio.classList.add('hidden');
-  
-  // Renderizar resumen de productos
-  if (resumenProductos) {
-    resumenProductos.innerHTML = '';
-    carritoCompleto.forEach(item => {
-      const itemDiv = document.createElement('div');
-      itemDiv.className = 'flex gap-3 pb-3 border-b border-gray-100';
-      itemDiv.innerHTML = `
-        <img 
-          src="${item.imagen}" 
-          alt="${item.nombre}"
-          class="w-16 h-16 object-cover rounded-lg flex-shrink-0"
-          onerror="this.src='https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=800&auto=format&fit=crop'"
-        >
-        <div class="flex-grow min-w-0">
-          <p class="text-sm font-semibold text-gray-800 truncate">${escapeHtml(item.nombre)}</p>
-          <p class="text-xs text-gray-600">${item.cantidad} x ${formatearCOP(item.precio)}</p>
-          <p class="text-sm font-bold text-green-700">${formatearCOP(item.subtotal)}</p>
-        </div>
-      `;
-      resumenProductos.appendChild(itemDiv);
-    });
-  }
-  
-  // Calcular totales
-  const total = calcularTotalCarrito();
-  if (subtotalEl) subtotalEl.textContent = formatearCOP(total);
-  if (totalEl) totalEl.textContent = formatearCOP(total);
-  
-  // Agregar máscaras a campos de tarjeta
-  const numeroTarjeta = document.getElementById('numeroTarjeta');
-  const vencimientoTarjeta = document.getElementById('vencimientoTarjeta');
-  const cvvTarjeta = document.getElementById('cvvTarjeta');
-  const telefonoEnvio = document.getElementById('telefonoEnvio');
-  
-  if (numeroTarjeta) {
-    numeroTarjeta.addEventListener('input', function(e) {
-      // Solo permitir números
-      e.target.value = e.target.value.replace(/[^0-9]/g, '');
-    });
-  }
-  
-  if (vencimientoTarjeta) {
-    vencimientoTarjeta.addEventListener('input', function(e) {
-      let value = e.target.value.replace(/[^0-9]/g, '');
-      if (value.length >= 2) {
-        value = value.substring(0, 2) + '/' + value.substring(2, 4);
-      }
-      e.target.value = value;
-    });
-  }
-  
-  if (cvvTarjeta) {
-    cvvTarjeta.addEventListener('input', function(e) {
-      e.target.value = e.target.value.replace(/[^0-9]/g, '');
-    });
-  }
-  
-  if (telefonoEnvio) {
-    telefonoEnvio.addEventListener('input', function(e) {
-      e.target.value = e.target.value.replace(/[^0-9]/g, '');
-    });
+
+  mostrarPantallaCheckout('cargandoCheckout');
+  ocultarAlertaCheckout();
+  renderizarAvisosCheckout([]);
+
+  try {
+    const { items, avisos } = await revalidarCarrito();
+    itemsCheckout = items;
+
+    if (itemsCheckout.length === 0) {
+      mostrarPantallaCheckout('checkoutVacio');
+      return;
+    }
+
+    renderizarResumenCheckout();
+    renderizarAvisosCheckout(avisos);
+    mostrarPantallaCheckout('checkoutContenido');
+    checkoutListo = true;
+  } catch (error) {
+    mostrarPantallaCheckout('errorCheckout');
+    mostrarErrorCarga(document.getElementById('errorCheckout'), error.message, cargarDatosCheckout);
   }
 }
 
-// Procesar compra con validación
-function procesarCompra() {
-  // Limpiar errores anteriores
-  limpiarErrores();
-  
-  // Obtener valores
-  const nombreEnvio = document.getElementById('nombreEnvio').value.trim();
-  const correoEnvio = document.getElementById('correoEnvio').value.trim();
-  const telefonoEnvio = document.getElementById('telefonoEnvio').value.trim();
-  const direccionEnvio = document.getElementById('direccionEnvio').value.trim();
-  const ciudadEnvio = document.getElementById('ciudadEnvio').value.trim();
-  
-  const nombreTarjeta = document.getElementById('nombreTarjeta').value.trim();
-  const numeroTarjeta = document.getElementById('numeroTarjeta').value.trim();
-  const vencimientoTarjeta = document.getElementById('vencimientoTarjeta').value.trim();
-  const cvvTarjeta = document.getElementById('cvvTarjeta').value.trim();
-  
-  let esValido = true;
-  
-  // Validar datos de envío
-  if (!nombreEnvio) {
-    mostrarError('errorNombreEnvio', 'El nombre es obligatorio');
-    esValido = false;
-  }
-  
-  if (!correoEnvio) {
-    mostrarError('errorCorreoEnvio', 'El correo es obligatorio');
-    esValido = false;
-  } else if (!validarEmail(correoEnvio)) {
-    mostrarError('errorCorreoEnvio', 'Ingresa un correo válido');
-    esValido = false;
-  }
-  
-  if (!telefonoEnvio) {
-    mostrarError('errorTelefonoEnvio', 'El teléfono es obligatorio');
-    esValido = false;
-  } else if (telefonoEnvio.length < 7) {
-    mostrarError('errorTelefonoEnvio', 'Ingresa un teléfono válido');
-    esValido = false;
-  }
-  
-  if (!direccionEnvio) {
-    mostrarError('errorDireccionEnvio', 'La dirección es obligatoria');
-    esValido = false;
-  }
-  
-  if (!ciudadEnvio) {
-    mostrarError('errorCiudadEnvio', 'La ciudad es obligatoria');
-    esValido = false;
-  }
-  
-  // Validar datos de pago
-  if (!nombreTarjeta) {
-    mostrarError('errorNombreTarjeta', 'El nombre en la tarjeta es obligatorio');
-    esValido = false;
-  }
-  
-  if (!numeroTarjeta) {
-    mostrarError('errorNumeroTarjeta', 'El número de tarjeta es obligatorio');
-    esValido = false;
-  } else if (numeroTarjeta.length !== 16) {
-    mostrarError('errorNumeroTarjeta', 'El número debe tener 16 dígitos');
-    esValido = false;
-  }
-  
-  if (!vencimientoTarjeta) {
-    mostrarError('errorVencimientoTarjeta', 'La fecha de vencimiento es obligatoria');
-    esValido = false;
-  } else if (!validarVencimiento(vencimientoTarjeta)) {
-    mostrarError('errorVencimientoTarjeta', 'Formato inválido o fecha vencida (MM/AA)');
-    esValido = false;
-  }
-  
-  if (!cvvTarjeta) {
-    mostrarError('errorCvvTarjeta', 'El CVV es obligatorio');
-    esValido = false;
-  } else if (cvvTarjeta.length !== 3) {
-    mostrarError('errorCvvTarjeta', 'El CVV debe tener 3 dígitos');
-    esValido = false;
-  }
-  
-  // Verificar que hay productos en el carrito
-  const carritoCompleto = obtenerCarritoCompleto();
-  if (carritoCompleto.length === 0) {
-    mostrarToast('No hay productos en el carrito', 'error');
-    return;
-  }
-  
-  if (!esValido) {
-    mostrarToast('Por favor corrige los errores en el formulario', 'error');
-    return;
-  }
-  
-  // Generar número de pedido aleatorio
-  const numeroPedido = 'PED-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-  
-  // Guardar información mínima para confirmación (NO guardar datos de tarjeta)
-  const infoPedido = {
-    numeroPedido: numeroPedido,
-    nombre: nombreEnvio,
-    correo: correoEnvio,
-    total: calcularTotalCarrito()
-  };
-  
-  localStorage.setItem('ultimo_pedido', JSON.stringify(infoPedido));
-  
-  // Vaciar carrito
-  vaciarCarrito();
-  actualizarContadorCarrito();
-  
-  // Redirigir a confirmación
-  window.location.href = 'confirmacion.html?pedido=' + encodeURIComponent(numeroPedido);
-}
-
-// Validar email
-function validarEmail(email) {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return regex.test(email);
-}
-
-// Validar vencimiento MM/AA
-function validarVencimiento(vencimiento) {
-  const regex = /^(0[1-9]|1[0-2])\/([0-9]{2})$/;
-  if (!regex.test(vencimiento)) {
-    return false;
-  }
-  
-  const [mes, anio] = vencimiento.split('/');
-  const mesNum = parseInt(mes);
-  const anioNum = parseInt('20' + anio);
-  
-  const fechaActual = new Date();
-  const anioActual = fechaActual.getFullYear();
-  const mesActual = fechaActual.getMonth() + 1;
-  
-  if (anioNum < anioActual) {
-    return false;
-  }
-  if (anioNum === anioActual && mesNum < mesActual) {
-    return false;
-  }
-  
-  return true;
-}
-
-// Mostrar error
-function mostrarError(elementId, mensaje) {
-  const elemento = document.getElementById(elementId);
-  if (elemento) {
-    elemento.textContent = mensaje;
-  }
-}
-
-// Limpiar errores
-function limpiarErrores() {
-  const errores = document.querySelectorAll('[id^="error"]');
-  errores.forEach(error => {
-    error.textContent = '';
+function mostrarPantallaCheckout(idVisible) {
+  ['cargandoCheckout', 'errorCheckout', 'checkoutVacio', 'checkoutContenido'].forEach((id) => {
+    const elemento = document.getElementById(id);
+    if (!elemento) return;
+    elemento.classList.toggle('hidden', id !== idVisible);
+    if (id === 'checkoutContenido' && id === idVisible) elemento.classList.add('grid');
   });
 }
 
-// Escapar HTML
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+function renderizarResumenCheckout() {
+  const contenedor = document.getElementById('resumenProductos');
+  if (!contenedor) return;
+
+  contenedor.innerHTML = itemsCheckout
+    .map(
+      (item) => `
+        <div class="flex items-center gap-3">
+          <img src="${escaparHtml(item.imagen_url)}" alt="${escaparHtml(item.nombre)}"
+               class="h-14 w-14 shrink-0 rounded-lg object-cover"
+               onerror="manejarErrorImagen(this)">
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium text-stone-800 dark:text-stone-200">${escaparHtml(item.nombre)}</p>
+            <p class="text-xs text-stone-400 dark:text-stone-500">${item.cantidad} × ${formatearCOP(item.precio)}</p>
+          </div>
+          <p class="shrink-0 text-sm font-semibold text-stone-800 dark:text-stone-200">${formatearCOP(item.precio * item.cantidad)}</p>
+        </div>`
+    )
+    .join('');
+
+  const unidades = itemsCheckout.reduce((total, item) => total + item.cantidad, 0);
+  const contador = document.getElementById('cantidadResumenCheckout');
+  if (contador) contador.textContent = `${unidades} unidad${unidades === 1 ? '' : 'es'}`;
+
+  const totales = calcularTotales(itemsCheckout);
+
+  const subtotal = document.getElementById('subtotalCheckout');
+  const descuento = document.getElementById('descuentoCheckout');
+  const filaDescuento = document.getElementById('filaDescuentoCheckout');
+  const envio = document.getElementById('envioCheckout');
+  const total = document.getElementById('totalCheckout');
+  const mensajeEnvio = document.getElementById('mensajeEnvioCheckout');
+  const cuponTexto = document.getElementById('cuponCheckout');
+
+  if (subtotal) subtotal.textContent = formatearCOP(totales.subtotal);
+  if (descuento) descuento.textContent = `-${formatearCOP(totales.descuento)}`;
+  filaDescuento?.classList.toggle('hidden', totales.descuento === 0);
+  if (envio) envio.textContent = totales.envio === 0 ? 'Gratis' : formatearCOP(totales.envio);
+  if (total) total.textContent = formatearCOP(totales.total);
+
+  if (cuponTexto) {
+    cuponTexto.textContent = totales.cupon
+      ? `Cupón ${totales.cupon.codigo} aplicado`
+      : 'Sin cupón aplicado';
+    cuponTexto.className = totales.cupon
+      ? 'font-semibold text-emerald-700 dark:text-emerald-400'
+      : 'text-stone-400 dark:text-stone-500';
+  }
+
+  if (mensajeEnvio) {
+    mensajeEnvio.textContent =
+      totales.envio === 0
+        ? 'Envío gratis incluido en tu pedido.'
+        : `Envío estándar: ${formatearCOP(totales.envio)}. Gratis desde ${formatearCOP(TIENDA_CONFIG.ENVIO.GRATIS_DESDE)}.`;
+  }
 }
+
+function renderizarAvisosCheckout(avisos) {
+  const contenedor = document.getElementById('avisosCheckout');
+  if (!contenedor) return;
+
+  contenedor.innerHTML = avisos
+    .map(
+      (aviso) => `
+        <div class="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+          <span class="mt-0.5 shrink-0" aria-hidden="true">${ICONOS.info}</span>
+          <p>${escaparHtml(aviso)}</p>
+        </div>`
+    )
+    .join('');
+}
+
+/* --------------------------- Validación --------------------------- */
+
+function validarVencimientoTarjeta(valor) {
+  const coincidencia = /^(0[1-9]|1[0-2])\/(\d{2})$/.exec(valor);
+  if (!coincidencia) return false;
+
+  const mes = Number(coincidencia[1]);
+  const anio = 2000 + Number(coincidencia[2]);
+  const ahora = new Date();
+  const anioActual = ahora.getFullYear();
+  const mesActual = ahora.getMonth() + 1;
+
+  return anio > anioActual || (anio === anioActual && mes >= mesActual);
+}
+
+function formatearCampoCheckout(input) {
+  if (input.id === 'numeroTarjeta') {
+    const digitos = input.value.replace(/\D/g, '').slice(0, 16);
+    input.value = digitos.replace(/(.{4})/g, '$1 ').trim();
+    return;
+  }
+
+  if (input.id === 'vencimientoTarjeta') {
+    const digitos = input.value.replace(/\D/g, '').slice(0, 4);
+    input.value =
+      digitos.length > 2 ? `${digitos.slice(0, 2)}/${digitos.slice(2)}` : digitos;
+    return;
+  }
+
+  if (input.id === 'cvvTarjeta') {
+    input.value = input.value.replace(/\D/g, '').slice(0, 3);
+    return;
+  }
+
+  if (input.id === 'telefonoEnvio') {
+    input.value = input.value.replace(/[^\d\s+()-]/g, '').slice(0, 20);
+  }
+}
+
+function validarReglaCheckout(regla) {
+  const input = document.getElementById(regla.id);
+  if (!input) return true;
+
+  const valor = input.value.trim();
+  let mensaje = '';
+
+  if (!valor) {
+    mensaje = 'Este campo es obligatorio.';
+  } else if (!regla.validar(valor)) {
+    mensaje = regla.mensaje;
+  }
+
+  aplicarErrorCampo(input, regla.errorId, mensaje);
+  return mensaje === '';
+}
+
+function aplicarErrorCampo(input, errorId, mensaje) {
+  const contenedorError = document.getElementById(errorId);
+  if (contenedorError) contenedorError.textContent = mensaje;
+  input.setAttribute('aria-invalid', mensaje ? 'true' : 'false');
+}
+
+function validarFormularioCheckout() {
+  let valido = true;
+  let primerInvalido = null;
+
+  REGLAS_CHECKOUT.forEach((regla) => {
+    const reglaValida = validarReglaCheckout(regla);
+    if (!reglaValida) {
+      valido = false;
+      if (!primerInvalido) primerInvalido = document.getElementById(regla.id);
+    }
+  });
+
+  primerInvalido?.focus();
+  return valido;
+}
+
+/* ----------------------------- Pedido ----------------------------- */
+
+async function enviarPedido(evento) {
+  evento.preventDefault();
+  if (!checkoutListo || enviando) return;
+
+  intentoEnvio = true;
+  ocultarAlertaCheckout();
+
+  if (!validarFormularioCheckout()) {
+    mostrarAlertaCheckout('Revisa los campos marcados antes de continuar.', 'error');
+    return;
+  }
+
+  const cliente = {
+    nombre: document.getElementById('nombreEnvio').value.trim(),
+    correo: document.getElementById('correoEnvio').value.trim(),
+    telefono: document.getElementById('telefonoEnvio').value.trim(),
+    direccion: document.getElementById('direccionEnvio').value.trim(),
+    ciudad: document.getElementById('ciudadEnvio').value.trim()
+  };
+
+  // Solo se envían ids y cantidades. Los precios los recalcula el servidor.
+  const cuerpo = {
+    cliente,
+    items: itemsCheckout.map((item) => ({ producto_id: item.id, cantidad: item.cantidad })),
+    cupon: obtenerCupon() || null,
+    metodo_pago: 'tarjeta_simulada'
+  };
+
+  enviando = true;
+  bloquearBotonCheckout(true);
+
+  try {
+    const { pedido } = await TiendaAPI.crearPedido(cuerpo);
+
+    // Guardamos el pedido devuelto por la API para mostrarlo al instante en la
+    // confirmación, sin necesidad de consultar de nuevo ni exponer el correo.
+    try {
+      sessionStorage.setItem(TIENDA_CONFIG.CLAVES.ULTIMO_PEDIDO, JSON.stringify(pedido));
+    } catch {
+      // Si el navegador bloquea sessionStorage, la confirmación mostrará una guía.
+    }
+
+    vaciarCarrito();
+    quitarCupon();
+    window.location.href = `confirmacion.html?pedido=${encodeURIComponent(pedido.numero_pedido)}`;
+  } catch (error) {
+    manejarErrorPedido(error);
+    enviando = false;
+    bloquearBotonCheckout(false);
+  }
+}
+
+function manejarErrorPedido(error) {
+  if (error.codigo === 'STOCK_INSUFICIENTE') {
+    const detalles = (error.detalles ?? []).map(
+      (item) =>
+        `${item.nombre ?? 'Producto'}: pediste ${item.solicitado ?? '?'} y hay ${item.disponible ?? 0}.`
+    );
+
+    mostrarAlertaCheckout(
+      'Alguien más compró antes que tú. Ajusta tu carrito para continuar.',
+      'error',
+      detalles,
+      {
+        texto: 'Actualizar carrito',
+        alHacer: () => {
+          ocultarAlertaCheckout();
+          cargarDatosCheckout();
+        }
+      }
+    );
+    return;
+  }
+
+  if (error.codigo === 'CUPON_INVALIDO') {
+    quitarCupon();
+    renderizarResumenCheckout();
+    mostrarAlertaCheckout('El cupón ya no es válido y lo quitamos del pedido.', 'error');
+    return;
+  }
+
+  if (error.codigo === 'DATOS_INVALIDOS') {
+    aplicarErroresServidor(error.detalles ?? []);
+    mostrarAlertaCheckout('Revisa los datos del formulario e intenta de nuevo.', 'error');
+    return;
+  }
+
+  mostrarAlertaCheckout(error.message, 'error');
+}
+
+function aplicarErroresServidor(detalles) {
+  detalles.forEach((detalle) => {
+    const inputId = CAMPOS_SERVIDOR[detalle.campo];
+    if (!inputId) return;
+    const regla = REGLAS_CHECKOUT.find((item) => item.id === inputId);
+    const input = document.getElementById(inputId);
+    if (input && regla) aplicarErrorCampo(input, regla.errorId, detalle.mensaje);
+  });
+}
+
+function bloquearBotonCheckout(bloqueado) {
+  const boton = document.getElementById('btnConfirmarCompra');
+  if (!boton) return;
+
+  boton.disabled = bloqueado;
+  boton.innerHTML = bloqueado
+    ? `<svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg><span>Procesando…</span>`
+    : `Confirmar compra <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+}
+
+/* ----------------------------- Alertas ---------------------------- */
+
+function mostrarAlertaCheckout(mensaje, tipo = 'error', detalles = [], accion = null) {
+  const contenedor = document.getElementById('alertaCheckout');
+  if (!contenedor) return;
+
+  const estilos =
+    tipo === 'error'
+      ? 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200'
+      : 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200';
+
+  const lista = detalles.length
+    ? `<ul class="mt-1.5 list-disc space-y-0.5 pl-4 text-xs">${detalles
+        .map((detalle) => `<li>${escaparHtml(detalle)}</li>`)
+        .join('')}</ul>`
+    : '';
+
+  contenedor.className = `mt-4 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${estilos}`;
+  contenedor.innerHTML = `
+    <span class="mt-0.5 shrink-0" aria-hidden="true">${ICONOS.alerta}</span>
+    <div class="min-w-0 flex-1">
+      <p>${escaparHtml(mensaje)}</p>
+      ${lista}
+    </div>`;
+  contenedor.classList.remove('hidden');
+
+  if (accion) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className =
+      'mt-2 rounded-lg border border-current/30 px-3 py-1.5 text-xs font-semibold transition hover:bg-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current dark:hover:bg-black/10';
+    boton.textContent = accion.texto;
+    boton.addEventListener('click', accion.alHacer);
+    contenedor.querySelector('div')?.appendChild(boton);
+  }
+
+  contenedor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function ocultarAlertaCheckout() {
+  const contenedor = document.getElementById('alertaCheckout');
+  if (!contenedor) return;
+  contenedor.classList.add('hidden');
+  contenedor.innerHTML = '';
+}
+
+document.addEventListener('DOMContentLoaded', iniciarCheckout);

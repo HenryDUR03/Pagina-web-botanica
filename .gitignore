@@ -1,0 +1,15 @@
+# Dependencias (el proyecto no las necesita: todo funciona por CDN)
+node_modules/
+
+# Variables de entorno y credenciales locales
+.env
+.env.local
+.env.*.local
+
+# Vercel
+.vercel/
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
