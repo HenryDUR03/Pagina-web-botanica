@@ -433,23 +433,276 @@ function obtenerPedidoLocal(numero, correo) {
 }
 
 /* ---------------------------- Modo Supabase ------------------------------ */
-// La conexión real se completa en la siguiente etapa. Mientras las llaves
-// estén vacías este bloque nunca se ejecuta.
 
-function lanzarSupabasePendiente() {
-  throw new ErrorApi(
-    'El modo Supabase aún no está configurado en esta versión.',
-    503,
-    'SUPABASE_PENDIENTE'
+const CAMPOS_PRODUCTO =
+  'id,nombre,descripcion,precio,stock,imagen_url,cuidados,creado_en,categoria_id,categorias!inner(nombre,slug)';
+
+let clienteSupabase = null;
+
+function obtenerClienteSupabase() {
+  if (clienteSupabase) return clienteSupabase;
+
+  const url = String(window.TIENDA_CONFIG.SUPABASE_URL ?? '').trim();
+  const llave = String(window.TIENDA_CONFIG.SUPABASE_PUBLISHABLE_KEY ?? '').trim();
+
+  if (!window.supabase?.createClient) {
+    throw new ErrorApi(
+      'No pudimos cargar la librería de Supabase. Revisa tu conexión y recarga la página.',
+      503,
+      'SUPABASE_NO_CARGADO'
+    );
+  }
+
+  try {
+    new URL(url);
+  } catch {
+    throw new ErrorApi(
+      'La URL de Supabase en js/config.js no es válida.',
+      503,
+      'SUPABASE_CONFIG_INVALIDA'
+    );
+  }
+
+  clienteSupabase = window.supabase.createClient(url, llave, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
+
+  return clienteSupabase;
+}
+
+function mapearProducto(fila) {
+  const { categorias, ...producto } = fila;
+  return {
+    ...producto,
+    categoria_nombre: categorias?.nombre ?? '',
+    categoria_slug: categorias?.slug ?? ''
+  };
+}
+
+// PostgREST usa LIKE: escapamos comodines para que el texto sea literal.
+function escaparLike(texto) {
+  return String(texto ?? '').replace(/[\\%_]/g, '\\$&');
+}
+
+function parsearDetalles(detalle) {
+  if (!detalle) return [];
+  if (Array.isArray(detalle)) return detalle;
+
+  try {
+    const datos = JSON.parse(detalle);
+    return Array.isArray(datos) ? datos : [datos];
+  } catch {
+    return [];
+  }
+}
+
+function esErrorDeRed(error) {
+  return /failed to fetch|networkerror|load failed|fetch failed/i.test(
+    String(error?.message ?? '')
   );
 }
 
+function traducirErrorConsulta(error) {
+  if (esErrorDeRed(error)) {
+    return new ErrorApi(
+      'No pudimos conectar con Supabase. Revisa tu conexión e intenta de nuevo.',
+      0,
+      'SIN_CONEXION'
+    );
+  }
+
+  console.warn('[TiendaAPI] Error de Supabase:', error);
+  return new ErrorApi(
+    'No pudimos cargar la información de la tienda. Intenta de nuevo.',
+    500,
+    'ERROR_SUPABASE'
+  );
+}
+
+function traducirErrorRpc(error) {
+  if (esErrorDeRed(error)) {
+    return new ErrorApi(
+      'No pudimos conectar con Supabase. Revisa tu conexión e intenta de nuevo.',
+      0,
+      'SIN_CONEXION'
+    );
+  }
+
+  const mensaje = String(error?.message ?? '').trim();
+
+  switch (error?.code) {
+    case 'PED01':
+      return new ErrorApi(mensaje || 'Revisa los datos del pedido.', 400, 'DATOS_INVALIDOS');
+    case 'PED02':
+      return new ErrorApi(
+        mensaje || 'Uno o más productos ya no están disponibles.',
+        400,
+        'PRODUCTO_NO_ENCONTRADO',
+        parsearDetalles(error?.details)
+      );
+    case 'PED03':
+      return new ErrorApi(
+        mensaje || 'No hay stock suficiente para uno o más productos.',
+        409,
+        'STOCK_INSUFICIENTE',
+        parsearDetalles(error?.details)
+      );
+    case 'PED04':
+      return new ErrorApi(mensaje || 'El cupón ingresado no es válido.', 400, 'CUPON_INVALIDO');
+    case 'PED05':
+      return new ErrorApi(mensaje || 'El número de pedido no es válido.', 400, 'NUMERO_INVALIDO');
+    case 'PED06':
+      return new ErrorApi(
+        mensaje || 'No encontramos un pedido con ese número y correo.',
+        404,
+        'PEDIDO_NO_ENCONTRADO'
+      );
+    default:
+      console.warn('[TiendaAPI] Error de Supabase:', error);
+      return new ErrorApi(
+        'No pudimos completar la operación. Intenta de nuevo.',
+        500,
+        'ERROR_SUPABASE'
+      );
+  }
+}
+
+async function obtenerCategoriasSupabase() {
+  const cliente = obtenerClienteSupabase();
+
+  const [respuestaCategorias, respuestaProductos] = await Promise.all([
+    cliente.from('categorias').select('id, nombre, slug').order('id'),
+    cliente.from('productos').select('categoria_id')
+  ]);
+
+  if (respuestaCategorias.error) throw traducirErrorConsulta(respuestaCategorias.error);
+  if (respuestaProductos.error) throw traducirErrorConsulta(respuestaProductos.error);
+
+  const conteos = new Map();
+  (respuestaProductos.data ?? []).forEach((producto) => {
+    conteos.set(producto.categoria_id, (conteos.get(producto.categoria_id) ?? 0) + 1);
+  });
+
+  return {
+    categorias: (respuestaCategorias.data ?? []).map((categoria) => ({
+      ...categoria,
+      total_productos: conteos.get(categoria.id) ?? 0
+    }))
+  };
+}
+
+async function obtenerProductosSupabase({ categoria, buscar, orden, limit, offset } = {}) {
+  const cliente = obtenerClienteSupabase();
+
+  const limite = Math.min(Math.max(Number.parseInt(limit, 10) || LIMITE_DEFECTO, 1), LIMITE_MAXIMO);
+  const desde = Math.max(Number.parseInt(offset, 10) || 0, 0);
+
+  let consulta = cliente
+    .from('productos')
+    .select(CAMPOS_PRODUCTO, { count: 'exact' });
+
+  if (categoria) {
+    consulta = consulta.eq('categorias.slug', categoria);
+  }
+
+  if (buscar) {
+    consulta = consulta.ilike('nombre', `%${escaparLike(buscar)}%`);
+  }
+
+  if (orden === 'precio_asc') {
+    consulta = consulta.order('precio', { ascending: true }).order('id', { ascending: true });
+  } else if (orden === 'precio_desc') {
+    consulta = consulta.order('precio', { ascending: false }).order('id', { ascending: true });
+  } else {
+    consulta = consulta.order('id', { ascending: true });
+  }
+
+  const { data, error, count } = await consulta.range(desde, desde + limite - 1);
+
+  if (error) throw traducirErrorConsulta(error);
+
+  const productos = (data ?? []).map(mapearProducto);
+  const total = count ?? 0;
+
+  return {
+    productos,
+    total,
+    limite,
+    offset: desde,
+    hay_mas: desde + productos.length < total
+  };
+}
+
+async function obtenerProductoSupabase(id) {
+  const numero = Number.parseInt(id, 10);
+  if (!Number.isInteger(numero) || numero <= 0) {
+    throw new ErrorApi('El id del producto no es válido.', 400, 'ID_INVALIDO');
+  }
+
+  const cliente = obtenerClienteSupabase();
+  const { data, error } = await cliente
+    .from('productos')
+    .select(CAMPOS_PRODUCTO)
+    .eq('id', numero)
+    .maybeSingle();
+
+  if (error) throw traducirErrorConsulta(error);
+  if (!data) {
+    throw new ErrorApi('El producto solicitado no existe.', 404, 'PRODUCTO_NO_ENCONTRADO');
+  }
+
+  return { producto: mapearProducto(data) };
+}
+
+async function crearPedidoSupabase(pedido) {
+  if (contieneDatosDeTarjeta(pedido)) {
+    throw new ErrorApi(
+      'No envíes datos de tarjeta: el pago es simulado y esos datos no se reciben.',
+      400,
+      'DATOS_NO_PERMITIDOS'
+    );
+  }
+
+  const cliente = obtenerClienteSupabase();
+  const { data, error } = await cliente.rpc('crear_pedido', { datos: pedido });
+
+  if (error) throw traducirErrorRpc(error);
+  if (!data?.numero_pedido) {
+    throw new ErrorApi(
+      'No pudimos confirmar el pedido. Intenta de nuevo.',
+      500,
+      'RESPUESTA_INVALIDA'
+    );
+  }
+
+  return { pedido: data };
+}
+
+async function obtenerPedidoSupabase(numero, correo) {
+  const cliente = obtenerClienteSupabase();
+  const { data, error } = await cliente.rpc('obtener_pedido', {
+    numero: String(numero ?? '').trim().toUpperCase(),
+    correo: String(correo ?? '').trim().toLowerCase()
+  });
+
+  if (error) throw traducirErrorRpc(error);
+  if (!data?.numero_pedido) {
+    throw new ErrorApi(
+      'No encontramos un pedido con ese número y correo.',
+      404,
+      'PEDIDO_NO_ENCONTRADO'
+    );
+  }
+
+  return { pedido: data };
+}
+
 const apiSupabase = {
-  obtenerCategorias: lanzarSupabasePendiente,
-  obtenerProductos: lanzarSupabasePendiente,
-  obtenerProducto: lanzarSupabasePendiente,
-  crearPedido: lanzarSupabasePendiente,
-  obtenerPedido: lanzarSupabasePendiente
+  obtenerCategorias: obtenerCategoriasSupabase,
+  obtenerProductos: obtenerProductosSupabase,
+  obtenerProducto: obtenerProductoSupabase,
+  crearPedido: crearPedidoSupabase,
+  obtenerPedido: obtenerPedidoSupabase
 };
 
 /* ------------------------------- Fachada --------------------------------- */
@@ -481,3 +734,4 @@ window.TiendaAPI = {
 };
 
 window.ErrorApi = ErrorApi;
+
